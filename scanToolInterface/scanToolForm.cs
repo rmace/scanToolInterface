@@ -9,10 +9,15 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
+using scanToolClasses;
+
 namespace scanToolInterface
 {
     public partial class scanToolForm : Form
     {
+
+        private LinkedList<inventoryItem> items;
+
         public scanToolForm()
         {
             InitializeComponent();
@@ -57,7 +62,7 @@ namespace scanToolInterface
         private void connectScanner()
         {
             posScanner.BeginInit();
-            if (posScanner.Open("DATALOGIC PSC USB Handheld Scanner") != 0)
+            if (posScanner.Open("USBHHScanner") != 0)
             {
                 MessageBox.Show("Failed to Open Connection to Scanner");
             }
@@ -105,7 +110,128 @@ namespace scanToolInterface
         private void axOPOSScanner1_DataEvent(object sender, AxOposScanner_CCO._IOPOSScannerEvents_DataEventEvent e)
         {
             // We got a scanner event!
-            sendItemID();
+            String scanData = posScanner.ScanData.ToString();
+            txtBarcodeData.Text = scanData;
+            txtItemID.Text = scanData;
+            posScanner.ClearInput();    // clear the data buffer
+            posScanner.DataEventEnabled = true;   // have to set true each timeitem  or it won't rescan
+            string itm = lookUpItem(scanData);
+            if (itm != null) sendItemID();
+        }
+
+        public string lookUpItem(string strBarCode)
+        {
+            string strItemId = null;
+            barcode bcode = barcode.findBarcode(strBarCode);
+            if (bcode != null)
+            {
+                inventoryItem itm = bcode.getItem();
+                txtItemID.Text = itm.ItemID;
+                strItemId = itm.ItemID;
+            }
+            else
+            {
+                txtBarcodeData.ForeColor = Color.Red;
+                btnSelectItem.Enabled = true;
+                MessageBox.Show("Barcode not found, please select an item for this barcode.");
+            }
+            return strItemId;
+        }
+
+        private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void optionsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form frm = new Options();
+            frm.ShowDialog();
+        }
+
+        private void closeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void btnLoadItems_Click(object sender, EventArgs e)
+        {
+            DialogResult result = openItemFile.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string itemFile = openItemFile.FileName;
+                try
+                {
+                    inventoryItem.LoadItems(itemFile);
+                    items = inventoryItem.itemList;
+                    foreach (inventoryItem item in items)
+                    {
+                        lstListOfItems.Items.Add(item);
+                    }
+                }
+                catch (Exception exc)
+                {
+                    MessageBox.Show("Error while trying to open item file: " + exc.ToString());
+                }
+            }
+        }
+
+        private void btnSaveItemsToFile_Click(object sender, EventArgs e)
+        {
+            DialogResult result = openItemFile.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string itemFile = openItemFile.FileName;
+                try
+                {
+                    inventoryItem.saveItems(itemFile);
+                }
+                catch (Exception exc)
+                {
+                    MessageBox.Show("Error while trying to save items to file: " + exc.ToString());
+                }
+            }
+
+        }
+
+        private void btnAddItem_Click(object sender, EventArgs e)
+        {
+            if (txtItemToAdd.Text.Length > 0)
+            {
+                inventoryItem i = new inventoryItem(txtItemToAdd.Text, txtDescription.Text);
+                if (lstListOfItems.FindString(i.ToString()) == -1)
+                { 
+                    lstListOfItems.Items.Add(i);
+                }
+            }
+        }
+
+        private void bntDeleteItems_Click(object sender, EventArgs e)
+        {
+            lstListOfItems.SelectedItems.Remove(lstListOfItems.SelectedItem);
+            lstListOfItems.Refresh();
+        }
+
+        private void btnSelectItem_Click(object sender, EventArgs e)
+        {
+            // first, get the selected item
+            inventoryItem itm = (inventoryItem) lstListOfItems.SelectedItem;
+            if (itm == null)
+            {
+                MessageBox.Show("No item selected. Please select an item in the list.");
+            }
+            else
+            {
+                if (txtBarcodeData.Text == null)
+                {
+                    MessageBox.Show("No barcode data. Please scan again.");
+                }
+                else
+                {
+                    itm.assignBarcode(txtBarcodeData.Text);
+                    txtItemID.Text = itm.ItemID;
+                }
+            }
         }
     }
 }
