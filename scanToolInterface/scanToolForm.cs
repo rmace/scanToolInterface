@@ -1,4 +1,22 @@
-﻿using System;
+﻿/*
+Class Name:  scanToolForm   
+Description:  Scan Tool form
+   This form is used to test and prototype the functionality of the Scan Tool.
+   The Scan Tool reads input from a barcode scanner and matches the input with
+   an associated Item ID.  The Item ID is then inserted into the keyboard
+   buffer, where it is read by an application open in another window.
+   If a matching Item ID is not found for the barcode, then the user may
+   associate the barcode with an Item ID.
+Purpose:  This class is used to test the functions of the scan tool prototype.
+
+Theory of Operation:
+
+Date:  08/19/2015
+Programmer:  Russell Mace 
+Prototype completed on 9/6/2015
+*/
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
